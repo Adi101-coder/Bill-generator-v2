@@ -244,6 +244,8 @@ const BillGenerator = () => {
         const addressRegex = /Customer Address\s*:\s*([\s\S]*?\d{6})/i;
         const addressMatchHDB = fullText.match(addressRegex);
         customerAddress = addressMatchHDB ? addressMatchHDB[1].trim() : '';
+        // Debug log for address
+        console.log('Extracted customerAddress (HDB):', customerAddress);
         // Serial/IMEI (optional, not always present)
         // Serial Number: extract all text after 'Serial Number' up to 'Model Number'
         const serialStart = fullText.indexOf('Serial Number');
@@ -262,27 +264,40 @@ const BillGenerator = () => {
         }
         // Asset Category: Use Google Custom Search API
         assetCategory = await detectAssetCategory(model);
+        // Debug log for manufacturer and assetCategory
+        console.log('Extracted manufacturer (HDB):', manufacturer);
+        console.log('Extracted assetCategory (HDB):', assetCategory);
       } else if (isIDFCBankDoc) {
         // For IDFC, extract name between "loan application of" and "has been approved for"
         customerNameMatch = fullText.match(/loan application of (.+?) has been approved for/i);
         finalCustomerName = customerNameMatch ? `${customerNameMatch[1].trim()} [IDFC FIRST BANK]` : '';
         manufacturerMatch = null;
         manufacturer = '';
-        // Improved Customer Address extraction for IDFC bills (from second page, inside the box)
-        let customerAddress = '';
-        try {
-          const page2 = await pdf.getPage(2);
-          const textContent2 = await page2.getTextContent();
-          const page2Text = textContent2.items.map(item => item.str).join(' ') + ' ';
-          const addressStart = page2Text.indexOf('Customer Address:');
-          const addressEnd = page2Text.indexOf('Thanking you,', addressStart + 1);
-          if (addressStart !== -1 && addressEnd !== -1 && addressEnd > addressStart) {
-            customerAddress = page2Text.substring(addressStart + 'Customer Address:'.length, addressEnd).trim();
+        // Improved Customer Address extraction for IDFC bills (based on paragraph and box)
+        customerAddress = '';
+        const para = "The required formalities with the customer have been completed and hence we request you to collect the down payment and only deliver the product at the following address post device validation is completed and final DA is received.";
+        const paraIdx = fullText.indexOf(para);
+        if (paraIdx !== -1) {
+          const afterPara = fullText.slice(paraIdx);
+          const addressIdx = afterPara.search(/Customer Address[:]?/i);
+          if (addressIdx !== -1) {
+            const afterAddress = afterPara.slice(addressIdx + 'Customer Address:'.length);
+            const thankingIdx = afterAddress.search(/Thanking you/i);
+            if (thankingIdx !== -1) {
+              customerAddress = afterAddress.slice(0, thankingIdx).trim();
+            } else {
+              customerAddress = afterAddress.trim();
+            }
           }
-        } catch (err) {
-          // fallback to previous logic if second page or extraction fails
         }
-        customerAddress = customerAddress.replace(/^(?:Customer )?Address:?[ \t]*(.*)$/i, '$1').trim();
+        // fallback to previous logic if not found
+        if (!customerAddress) {
+          const addressMatch = fullText.match(/(?:Customer )?Address:?[ \t]*([\s\S]*?\d{6})/i);
+          customerAddress = addressMatch ? addressMatch[1].trim() : '';
+          customerAddress = customerAddress.replace(/^(?:Customer )?Address:?[ \t]*(.*)$/i, '$1').trim();
+        }
+        // Debug log for address
+        console.log('Extracted customerAddress (IDFC):', customerAddress);
         const rawAssetCategoryMatch = fullText.match(/Asset Category:?[ \t]*([A-Za-z\s]+?)(?=\s*(?:Sub-Category|Variant|\bModel\b|\bSerial Number\b|\bAsset Cost\b|$))/i);
         assetCategory = rawAssetCategoryMatch ? rawAssetCategoryMatch[1].trim() : '';
         if (assetCategory.endsWith('D')) {
@@ -301,6 +316,9 @@ const BillGenerator = () => {
         }
         // Asset Category: Use Google Custom Search API
         assetCategory = await detectAssetCategory(model);
+        // Debug log for manufacturer and assetCategory
+        console.log('Extracted manufacturer (IDFC):', manufacturer);
+        console.log('Extracted assetCategory (IDFC):', assetCategory);
       } else {
         // For Chola, extract name, manufacturer, model, asset cost, and serial number
         customerNameMatch = fullText.match(/Customer Name:?[ \t]*([A-Za-z]+(?:\s+[A-Za-z]+){0,2})/i);
@@ -312,6 +330,8 @@ const BillGenerator = () => {
         const addressMatch = fullText.match(/(?:Customer )?Address:?[ \t]*([\s\S]*?\d{6})/i);
         customerAddress = addressMatch ? addressMatch[1].trim() : '';
         customerAddress = customerAddress.replace(/^(?:Customer )?Address:?[ \t]*(.*)$/i, '$1').trim();
+        // Debug log for address
+        console.log('Extracted customerAddress (Chola):', customerAddress);
         const rawAssetCategoryMatch = fullText.match(/Asset Category:?[ \t]*([A-Za-z\s]+?)(?=\s*(?:Sub-Category|Variant|\bModel\b|\bSerial Number\b|\bAsset Cost\b|$))/i);
         assetCategory = rawAssetCategoryMatch ? rawAssetCategoryMatch[1].trim() : '';
         if (assetCategory.endsWith('D')) {
@@ -327,6 +347,9 @@ const BillGenerator = () => {
         }
         // Asset Category: Use Google Custom Search API
         assetCategory = await detectAssetCategory(model);
+        // Debug log for manufacturer and assetCategory
+        console.log('Extracted manufacturer (Chola):', manufacturer);
+        console.log('Extracted assetCategory (Chola):', assetCategory);
       }
 
       // Before setting extractedData, debug assetCost and serialNumber
