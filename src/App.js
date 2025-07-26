@@ -38,6 +38,119 @@ async function detectAssetCategory(modelNo) {
   }
 }
 
+// Helper to detect manufacturer from model number using Google Custom Search API
+async function detectManufacturerFromModel(modelNo) {
+  if (!modelNo) return '';
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}&q=${encodeURIComponent(modelNo)}`
+    );
+    const data = await response.json();
+    const items = data.items || [];
+    const text = items.map(item => (item.title + ' ' + item.snippet)).join(' ');
+    // Log the Google search result text
+    console.log('Google search result text for manufacturer detection:', text);
+    
+    // Common electronic manufacturers - improved detection
+    const manufacturers = [
+      { pattern: /samsung/i, name: 'Samsung' },
+      { pattern: /lg/i, name: 'LG' },
+      { pattern: /sony/i, name: 'Sony' },
+      { pattern: /panasonic/i, name: 'Panasonic' },
+      { pattern: /whirlpool/i, name: 'Whirlpool' },
+      { pattern: /bosch/i, name: 'Bosch' },
+      { pattern: /siemens/i, name: 'Siemens' },
+      { pattern: /hitachi/i, name: 'Hitachi' },
+      { pattern: /daikin/i, name: 'Daikin' },
+      { pattern: /voltas/i, name: 'Voltas' },
+      { pattern: /carrier/i, name: 'Carrier' },
+      { pattern: /blue\s*star/i, name: 'Blue Star' },
+      { pattern: /godrej/i, name: 'Godrej' },
+      { pattern: /ifb/i, name: 'IFB' },
+      { pattern: /onida/i, name: 'Onida' },
+      { pattern: /videocon/i, name: 'Videocon' },
+      { pattern: /bpl/i, name: 'BPL' },
+      { pattern: /haier/i, name: 'Haier' },
+      { pattern: /micromax/i, name: 'Micromax' },
+      { pattern: /intel/i, name: 'Intel' },
+      { pattern: /amd/i, name: 'AMD' },
+      { pattern: /nvidia/i, name: 'NVIDIA' },
+      { pattern: /asus/i, name: 'ASUS' },
+      { pattern: /dell/i, name: 'Dell' },
+      { pattern: /hp|hewlett\s*packard/i, name: 'HP' },
+      { pattern: /lenovo/i, name: 'Lenovo' },
+      { pattern: /acer/i, name: 'Acer' },
+      { pattern: /apple/i, name: 'Apple' },
+      { pattern: /xiaomi/i, name: 'Xiaomi' },
+      { pattern: /oneplus/i, name: 'OnePlus' },
+      { pattern: /oppo/i, name: 'OPPO' },
+      { pattern: /vivo/i, name: 'Vivo' },
+      { pattern: /realme/i, name: 'Realme' },
+      { pattern: /honor/i, name: 'Honor' },
+      { pattern: /nokia/i, name: 'Nokia' },
+      { pattern: /motorola/i, name: 'Motorola' },
+      { pattern: /google/i, name: 'Google' },
+      { pattern: /microsoft/i, name: 'Microsoft' },
+      { pattern: /canon/i, name: 'Canon' },
+      { pattern: /nikon/i, name: 'Nikon' },
+      { pattern: /fujifilm/i, name: 'Fujifilm' },
+      { pattern: /kodak/i, name: 'Kodak' },
+      { pattern: /jbl/i, name: 'JBL' },
+      { pattern: /bose/i, name: 'Bose' },
+      { pattern: /sennheiser/i, name: 'Sennheiser' },
+      { pattern: /philips/i, name: 'Philips' },
+      { pattern: /toshiba/i, name: 'Toshiba' },
+      { pattern: /sharp/i, name: 'Sharp' },
+      { pattern: /benq/i, name: 'BenQ' },
+      { pattern: /viewsonic/i, name: 'ViewSonic' },
+      { pattern: /logitech/i, name: 'Logitech' },
+      { pattern: /razer/i, name: 'Razer' },
+      { pattern: /corsair/i, name: 'Corsair' },
+      { pattern: /kingston/i, name: 'Kingston' },
+      { pattern: /western\s*digital|wd/i, name: 'Western Digital' },
+      { pattern: /seagate/i, name: 'Seagate' },
+      { pattern: /sandisk/i, name: 'SanDisk' },
+      { pattern: /crucial/i, name: 'Crucial' },
+      { pattern: /gskill/i, name: 'G.Skill' },
+      { pattern: /adata/i, name: 'ADATA' },
+      { pattern: /transcend/i, name: 'Transcend' },
+      { pattern: /patriot/i, name: 'Patriot' },
+      { pattern: /team\s*group/i, name: 'Team Group' },
+      { pattern: /ocz/i, name: 'OCZ' },
+      { pattern: /plextor/i, name: 'Plextor' },
+      { pattern: /silicon\s*power/i, name: 'Silicon Power' },
+      { pattern: /mushkin/i, name: 'Mushkin' },
+      { pattern: /geil/i, name: 'GeIL' },
+      { pattern: /ballistix/i, name: 'Ballistix' },
+      { pattern: /hyperx/i, name: 'HyperX' },
+      { pattern: /vengeance/i, name: 'Vengeance' },
+      { pattern: /dominator/i, name: 'Dominator' },
+      { pattern: /trident/i, name: 'Trident' },
+      { pattern: /ripjaws/i, name: 'Ripjaws' },
+      { pattern: /flare/i, name: 'Flare' },
+      { pattern: /sniper/i, name: 'Sniper' },
+      { pattern: /aegis/i, name: 'Aegis' },
+      { pattern: /spectrix/i, name: 'Spectrix' },
+      { pattern: /t-force/i, name: 'T-Force' }
+    ];
+    
+    // Check each manufacturer pattern
+    for (const mfg of manufacturers) {
+      if (mfg.pattern.test(text)) {
+        console.log(`Manufacturer detected: ${mfg.name}`);
+        return mfg.name;
+      }
+    }
+    
+    // If no manufacturer found, log what was searched
+    console.log('No manufacturer pattern matched in search results');
+    return '';
+  } catch (err) {
+    console.error('Error detecting manufacturer:', err);
+    return '';
+  }
+}
+
 const BillGenerator = () => {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [extractedData, setExtractedData] = useState(null);
@@ -48,6 +161,7 @@ const BillGenerator = () => {
   const [isHDBChecked, setIsHDBChecked] = useState(false);
   const [manualSerial, setManualSerial] = useState('');
   const [appliedSerial, setAppliedSerial] = useState('');
+  const [isSerialUpdated, setIsSerialUpdated] = useState(false);
 
   // Function to convert number to words in Indian format
   const numberToWords = (amount) => {
@@ -271,8 +385,74 @@ const BillGenerator = () => {
         // For IDFC, extract name between "loan application of" and "has been approved for"
         customerNameMatch = fullText.match(/loan application of (.+?) has been approved for/i);
         finalCustomerName = customerNameMatch ? `${customerNameMatch[1].trim()} [IDFC FIRST BANK]` : '';
-        manufacturerMatch = null;
-        manufacturer = '';
+        
+        // Extract text between "Asset Category" and "D Model Number" for asset category only
+        const assetCatStartIndex = fullText.indexOf('Asset Category');
+        const modelNumEndIndex = fullText.indexOf('D Model Number');
+        
+        console.log('Asset Category start index:', assetCatStartIndex);
+        console.log('D Model Number end index:', modelNumEndIndex);
+        
+        // Debug: Show text around Asset Category to find the correct next heading
+        let foundModelHeading = '';
+        let foundModelIndex = -1;
+        
+        if (assetCatStartIndex !== -1) {
+          const textAfterAssetCategory = fullText.substring(assetCatStartIndex + 'Asset Category'.length, assetCatStartIndex + 200);
+          console.log('Text after Asset Category:', textAfterAssetCategory);
+          
+          // Try different variations of the model number heading
+          const possibleModelHeadings = [
+            'D Model Number',
+            'Model Number',
+            'Model No',
+            'Model:',
+            'Model Number:',
+            'D Model No',
+            'Model'
+          ];
+          
+          for (const heading of possibleModelHeadings) {
+            const index = fullText.indexOf(heading, assetCatStartIndex);
+            if (index !== -1) {
+              foundModelHeading = heading;
+              foundModelIndex = index;
+              break;
+            }
+          }
+          
+          console.log('Found model heading:', foundModelHeading);
+          console.log('Found model index:', foundModelIndex);
+        }
+        
+        // Use the found model heading if available, otherwise fall back to "D Model Number"
+        const actualModelEndIndex = foundModelIndex !== -1 ? foundModelIndex : modelNumEndIndex;
+        
+        if (assetCatStartIndex !== -1 && actualModelEndIndex !== -1 && actualModelEndIndex > assetCatStartIndex) {
+          // Extract text between "Asset Category" and the found model heading
+          const textStartIndex = assetCatStartIndex + 'Asset Category'.length;
+          const textEndIndex = actualModelEndIndex;
+          const rawExtractedText = fullText.substring(textStartIndex, textEndIndex);
+          
+          console.log('Raw extracted text between Asset Category and D Model Number:', rawExtractedText);
+          
+          // Extract asset category from the raw text (keeping original format)
+          assetCategory = rawExtractedText.trim();
+          console.log('Asset Category extracted from PDF (IDFC):', assetCategory);
+          console.log('Asset Category length:', assetCategory.length);
+          
+          // Set manufacturer to empty for IDFC bills
+          manufacturer = '';
+        } else {
+          console.log('Could not find "Asset Category" or "D Model Number" in PDF text');
+          console.log('Asset Category start index:', assetCatStartIndex);
+          console.log('D Model Number end index:', modelNumEndIndex);
+          manufacturer = '';
+          assetCategory = '';
+        }
+        
+        // Note: No Google search fallback for IDFC bills - using only PDF extraction
+        
         // Improved Customer Address extraction for IDFC bills (based on paragraph and box)
         customerAddress = '';
         const para = "The required formalities with the customer have been completed and hence we request you to collect the down payment and only deliver the product at the following address post device validation is completed and final DA is received.";
@@ -298,9 +478,10 @@ const BillGenerator = () => {
         }
         // Debug log for address
         console.log('Extracted customerAddress (IDFC):', customerAddress);
-        const rawAssetCategoryMatch = fullText.match(/Asset Category:?[ \t]*([A-Za-z\s]+?)(?=\s*(?:Sub-Category|Variant|\bModel\b|\bSerial Number\b|\bAsset Cost\b|$))/i);
-        assetCategory = rawAssetCategoryMatch ? rawAssetCategoryMatch[1].trim() : '';
-        if (assetCategory.endsWith('D')) {
+        
+        // Asset Category is already extracted above between "Asset Category" and "D Model Number"
+        // Clean up asset category (remove trailing 'D' if present)
+        if (assetCategory && assetCategory.endsWith('D')) {
           assetCategory = assetCategory.slice(0, -1).trim();
         }
         modelMatch = fullText.match(/Model Number:?[ \t]*([^\n\r]+?)(?!E\s*(?:Scheme Name|Serial Number|Asset Category|\n|\r))(?=\s*(?:Scheme Name|Serial Number|Asset Category|\n|\r))/i);
@@ -314,8 +495,6 @@ const BillGenerator = () => {
         if (assetCostMatch) {
           assetCost = parseFloat(assetCostMatch[1].replace(/[^0-9.]/g, ''));
         }
-        // Asset Category: Use Google Custom Search API
-        assetCategory = await detectAssetCategory(model);
         // Debug log for manufacturer and assetCategory
         console.log('Extracted manufacturer (IDFC):', manufacturer);
         console.log('Extracted assetCategory (IDFC):', assetCategory);
@@ -480,7 +659,7 @@ const BillGenerator = () => {
           <td style="border: 1px solid #000; vertical-align: top; padding: 4px; font-size:8px;">
             <strong>${extractedData.manufacturer} ${extractedData.assetCategory}</strong><br><br>
             <strong>Model No:</strong> ${extractedData.model}<br>
-            <b>Serial Number:</b> ${serialToDisplay}<br>
+            ${serialToDisplay ? `<b>Serial Number:</b> ${serialToDisplay}<br>` : ''}
             <div style="display: flex; justify-content: space-between; margin-top: 4px;">
               <div><strong>CGST</strong></div>
               <div>${formatAmount(Number(taxDetails.cgst))}</div>
@@ -738,11 +917,46 @@ const BillGenerator = () => {
             style={{ padding: '4px 8px', fontSize: '1rem', borderRadius: 4, border: '1px solid #ccc', minWidth: 180 }}
           />
          <button
-           style={{ marginLeft: 8, padding: '4px 12px', fontSize: '1rem', borderRadius: 4, border: '1px solid #2563eb', background: '#2563eb', color: '#fff', cursor: 'pointer' }}
-           onClick={() => setAppliedSerial(manualSerial)}
-         >
-           Update Serial Number
-         </button>
+           style={{ 
+             marginLeft: 8, 
+             padding: '4px 12px', 
+             fontSize: '1rem', 
+             borderRadius: 4, 
+             border: `1px solid ${isSerialUpdated ? '#059669' : '#2563eb'}`, 
+             background: isSerialUpdated ? '#059669' : '#2563eb', 
+             color: '#fff', 
+             cursor: 'pointer',
+             transition: 'all 0.2s ease-in-out',
+             transform: 'scale(1)',
+             boxShadow: isSerialUpdated ? '0 2px 4px rgba(5, 150, 105, 0.2)' : '0 2px 4px rgba(37, 99, 235, 0.2)'
+           }}
+           onClick={(e) => {
+             // Add click animation
+             e.target.style.transform = 'scale(0.95)';
+             e.target.style.background = isSerialUpdated ? '#047857' : '#1d4ed8';
+             e.target.style.boxShadow = isSerialUpdated ? '0 1px 2px rgba(5, 150, 105, 0.3)' : '0 1px 2px rgba(37, 99, 235, 0.3)';
+             
+             // Reset animation after 150ms
+             setTimeout(() => {
+               e.target.style.transform = 'scale(1)';
+               e.target.style.background = isSerialUpdated ? '#059669' : '#2563eb';
+               e.target.style.boxShadow = isSerialUpdated ? '0 2px 4px rgba(5, 150, 105, 0.2)' : '0 2px 4px rgba(37, 99, 235, 0.2)';
+             }, 150);
+             
+             setAppliedSerial(manualSerial);
+             setIsSerialUpdated(true);
+           }}
+           onMouseEnter={(e) => {
+             e.target.style.transform = 'scale(1.05)';
+             e.target.style.boxShadow = isSerialUpdated ? '0 4px 8px rgba(5, 150, 105, 0.3)' : '0 4px 8px rgba(37, 99, 235, 0.3)';
+           }}
+           onMouseLeave={(e) => {
+             e.target.style.transform = 'scale(1)';
+             e.target.style.boxShadow = isSerialUpdated ? '0 2px 4px rgba(5, 150, 105, 0.2)' : '0 2px 4px rgba(37, 99, 235, 0.2)';
+           }}
+                    >
+             {isSerialUpdated ? '✓ Serial Updated' : 'Update Serial Number'}
+           </button>
         </div>
       )}
     </div>
