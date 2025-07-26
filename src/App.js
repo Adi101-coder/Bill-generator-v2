@@ -791,7 +791,7 @@ const BillGenerator = () => {
   return (
     <div>
       <div className="bill-container">
-        <h1 className="bill-header">Professional Bill Generator</h1>
+        <h1 className="bill-header">Katiyar Electronics</h1>
 
         {/* Upload Section */}
         <div className="upload-section">
@@ -892,7 +892,7 @@ const BillGenerator = () => {
           </div>
         )}
       </div>
-      <h2 style={{ textAlign: 'center', margin: '24px 0 16px 0' }}>Professional Bill Generator</h2>
+      <h2 style={{ textAlign: 'center', margin: '24px 0 16px 0' }}>Katiyar Electronics Invoice Generator</h2>
       <div style={{ margin: '16px 0', textAlign: 'center' }}>
         <label>
           <input
