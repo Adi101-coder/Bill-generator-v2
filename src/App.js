@@ -1,156 +1,93 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, Download, Eye, Edit2, Calculator } from 'lucide-react';
+import { Upload, FileText, Download, Eye, Calculator } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import Tesseract from 'tesseract.js';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Dashboard from './components/Dashboard';
+import Analytics from './components/Analytics';
 import './App.css';
 
-// Initialize PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-// Google Custom Search API credentials
-const GOOGLE_API_KEY = 'AIzaSyCu9nP9vl7WLHoZAJBLPnd1Vb_iaN1EUgU';
-const GOOGLE_CSE_ID = 'b1b1cfc37a9cb4fcf';
+const API_BASE_URL = 'http://localhost:5000/api';
 
-// Helper to detect asset category from model number using Google Custom Search API
-async function detectAssetCategory(modelNo) {
-  if (!modelNo) return '';
-  try {
-    const response = await fetch(
-      `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}&q=${encodeURIComponent(modelNo)}`
-    );
-    const data = await response.json();
-    const items = data.items || [];
-    const text = items.map(item => (item.title + ' ' + item.snippet)).join(' ');
-    if (/refrigerator|fridge/i.test(text)) return 'Refrigerator';
-    if (/washing machine/i.test(text)) return 'Washing Machine';
-    if (/air conditioner|ac\b/i.test(text)) return 'Air Conditioner';
-    if (/microwave/i.test(text)) return 'Microwave';
-    if (/television|tv/i.test(text)) return 'Television';
-    if (/dishwasher/i.test(text)) return 'Dishwasher';
-    if (/water purifier/i.test(text)) return 'Water Purifier';
-    if (/fan/i.test(text)) return 'Fan';
-    if (/geyser|water heater/i.test(text)) return 'Geyser';
-    // Add more as needed
-    return '';
-  } catch (err) {
-    console.error('Error detecting asset category:', err);
-    return '';
-  }
-}
+// Admin Login Component
+const AdminLogin = ({ onLogin }) => {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-// Helper to detect manufacturer from model number using Google Custom Search API
-async function detectManufacturerFromModel(modelNo) {
-  if (!modelNo) return '';
-  try {
-    const response = await fetch(
-      `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}&q=${encodeURIComponent(modelNo)}`
-    );
-    const data = await response.json();
-    const items = data.items || [];
-    const text = items.map(item => (item.title + ' ' + item.snippet)).join(' ');
-    // Log the Google search result text
-    console.log('Google search result text for manufacturer detection:', text);
-    
-    // Common electronic manufacturers - improved detection
-    const manufacturers = [
-      { pattern: /samsung/i, name: 'Samsung' },
-      { pattern: /lg/i, name: 'LG' },
-      { pattern: /sony/i, name: 'Sony' },
-      { pattern: /panasonic/i, name: 'Panasonic' },
-      { pattern: /whirlpool/i, name: 'Whirlpool' },
-      { pattern: /bosch/i, name: 'Bosch' },
-      { pattern: /siemens/i, name: 'Siemens' },
-      { pattern: /hitachi/i, name: 'Hitachi' },
-      { pattern: /daikin/i, name: 'Daikin' },
-      { pattern: /voltas/i, name: 'Voltas' },
-      { pattern: /carrier/i, name: 'Carrier' },
-      { pattern: /blue\s*star/i, name: 'Blue Star' },
-      { pattern: /godrej/i, name: 'Godrej' },
-      { pattern: /ifb/i, name: 'IFB' },
-      { pattern: /onida/i, name: 'Onida' },
-      { pattern: /videocon/i, name: 'Videocon' },
-      { pattern: /bpl/i, name: 'BPL' },
-      { pattern: /haier/i, name: 'Haier' },
-      { pattern: /micromax/i, name: 'Micromax' },
-      { pattern: /intel/i, name: 'Intel' },
-      { pattern: /amd/i, name: 'AMD' },
-      { pattern: /nvidia/i, name: 'NVIDIA' },
-      { pattern: /asus/i, name: 'ASUS' },
-      { pattern: /dell/i, name: 'Dell' },
-      { pattern: /hp|hewlett\s*packard/i, name: 'HP' },
-      { pattern: /lenovo/i, name: 'Lenovo' },
-      { pattern: /acer/i, name: 'Acer' },
-      { pattern: /apple/i, name: 'Apple' },
-      { pattern: /xiaomi/i, name: 'Xiaomi' },
-      { pattern: /oneplus/i, name: 'OnePlus' },
-      { pattern: /oppo/i, name: 'OPPO' },
-      { pattern: /vivo/i, name: 'Vivo' },
-      { pattern: /realme/i, name: 'Realme' },
-      { pattern: /honor/i, name: 'Honor' },
-      { pattern: /nokia/i, name: 'Nokia' },
-      { pattern: /motorola/i, name: 'Motorola' },
-      { pattern: /google/i, name: 'Google' },
-      { pattern: /microsoft/i, name: 'Microsoft' },
-      { pattern: /canon/i, name: 'Canon' },
-      { pattern: /nikon/i, name: 'Nikon' },
-      { pattern: /fujifilm/i, name: 'Fujifilm' },
-      { pattern: /kodak/i, name: 'Kodak' },
-      { pattern: /jbl/i, name: 'JBL' },
-      { pattern: /bose/i, name: 'Bose' },
-      { pattern: /sennheiser/i, name: 'Sennheiser' },
-      { pattern: /philips/i, name: 'Philips' },
-      { pattern: /toshiba/i, name: 'Toshiba' },
-      { pattern: /sharp/i, name: 'Sharp' },
-      { pattern: /benq/i, name: 'BenQ' },
-      { pattern: /viewsonic/i, name: 'ViewSonic' },
-      { pattern: /logitech/i, name: 'Logitech' },
-      { pattern: /razer/i, name: 'Razer' },
-      { pattern: /corsair/i, name: 'Corsair' },
-      { pattern: /kingston/i, name: 'Kingston' },
-      { pattern: /western\s*digital|wd/i, name: 'Western Digital' },
-      { pattern: /seagate/i, name: 'Seagate' },
-      { pattern: /sandisk/i, name: 'SanDisk' },
-      { pattern: /crucial/i, name: 'Crucial' },
-      { pattern: /gskill/i, name: 'G.Skill' },
-      { pattern: /adata/i, name: 'ADATA' },
-      { pattern: /transcend/i, name: 'Transcend' },
-      { pattern: /patriot/i, name: 'Patriot' },
-      { pattern: /team\s*group/i, name: 'Team Group' },
-      { pattern: /ocz/i, name: 'OCZ' },
-      { pattern: /plextor/i, name: 'Plextor' },
-      { pattern: /silicon\s*power/i, name: 'Silicon Power' },
-      { pattern: /mushkin/i, name: 'Mushkin' },
-      { pattern: /geil/i, name: 'GeIL' },
-      { pattern: /ballistix/i, name: 'Ballistix' },
-      { pattern: /hyperx/i, name: 'HyperX' },
-      { pattern: /vengeance/i, name: 'Vengeance' },
-      { pattern: /dominator/i, name: 'Dominator' },
-      { pattern: /trident/i, name: 'Trident' },
-      { pattern: /ripjaws/i, name: 'Ripjaws' },
-      { pattern: /flare/i, name: 'Flare' },
-      { pattern: /sniper/i, name: 'Sniper' },
-      { pattern: /aegis/i, name: 'Aegis' },
-      { pattern: /spectrix/i, name: 'Spectrix' },
-      { pattern: /t-force/i, name: 'T-Force' }
-    ];
-    
-    // Check each manufacturer pattern
-    for (const mfg of manufacturers) {
-      if (mfg.pattern.test(text)) {
-        console.log(`Manufacturer detected: ${mfg.name}`);
-        return mfg.name;
-      }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (password === 'admin123') {
+      onLogin(true);
+    } else {
+      setError('Invalid password');
     }
-    
-    // If no manufacturer found, log what was searched
-    console.log('No manufacturer pattern matched in search results');
-    return '';
-  } catch (err) {
-    console.error('Error detecting manufacturer:', err);
-    return '';
-  }
-}
+  };
 
+  return (
+    <div className="admin-login">
+      <div className="login-card">
+        <h2>Admin Login</h2>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="password"
+            placeholder="Enter password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="password-input"
+          />
+          {error && <div className="error">{error}</div>}
+          <button type="submit" className="login-btn">Login</button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Admin Dashboard Component
+const AdminDashboard = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentView, setCurrentView] = useState('dashboard');
+
+  if (!isAuthenticated) {
+    return <AdminLogin onLogin={setIsAuthenticated} />;
+  }
+
+  return (
+    <div className="admin-app">
+      <nav className="admin-nav">
+        <div className="nav-brand">Admin Dashboard</div>
+        <div className="nav-links">
+          <button 
+            className={`nav-btn ${currentView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setCurrentView('dashboard')}
+          >
+            Dashboard
+          </button>
+          <button 
+            className={`nav-btn ${currentView === 'analytics' ? 'active' : ''}`}
+            onClick={() => setCurrentView('analytics')}
+          >
+            Analytics
+          </button>
+          <button 
+            className="nav-btn logout"
+            onClick={() => setIsAuthenticated(false)}
+          >
+            Logout
+          </button>
+        </div>
+      </nav>
+      <main>
+        {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'analytics' && <Analytics />}
+      </main>
+    </div>
+  );
+};
+
+// Original Bill Generator Component
 const BillGenerator = () => {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [extractedData, setExtractedData] = useState(null);
@@ -163,33 +100,10 @@ const BillGenerator = () => {
   const [appliedSerial, setAppliedSerial] = useState('');
   const [isSerialUpdated, setIsSerialUpdated] = useState(false);
 
-  // Function to convert number to words in Indian format
   const numberToWords = (amount) => {
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
     const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
     const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-    
-    const convertHundreds = (num) => {
-      let words = '';
-      if (typeof num !== 'number' || isNaN(num) || num < 0) return ''; 
-      num = Math.floor(num); 
-
-      if (num >= 100) {
-        words += ones[Math.floor(num / 100)] + ' Hundred ';
-        num %= 100;
-      }
-      if (num >= 20) {
-        words += tens[Math.floor(num / 10)] + ' ';
-        num %= 10;
-      } else if (num >= 10) {
-        words += teens[num - 10] + ' ';
-        num = 0; 
-      }
-      if (num > 0) { 
-        words += ones[num] + ' ';
-      }
-      return words; 
-    };
 
     if (amount === 0) return 'Zero Rupees Only';
     if (typeof amount !== 'number' || isNaN(amount) || amount < 0) return ''; 
@@ -199,262 +113,135 @@ const BillGenerator = () => {
     let paise = parseInt(paiseStr, 10); 
 
     let resultWords = []; 
-
     let crores = Math.floor(rupees / 10000000);
     rupees %= 10000000;
-    if (crores > 0) {
-      resultWords.push(convertHundreds(crores).trim() + ' Crore');
-    }
+    if (crores > 0) resultWords.push(crores + ' Crore');
 
     let lakhs = Math.floor(rupees / 100000);
     rupees %= 100000;
-    if (lakhs > 0) {
-      resultWords.push(convertHundreds(lakhs).trim() + ' Lakh');
-    }
+    if (lakhs > 0) resultWords.push(lakhs + ' Lakh');
 
     let thousands = Math.floor(rupees / 1000);
     rupees %= 1000;
-    if (thousands > 0) {
-      resultWords.push(convertHundreds(thousands).trim() + ' Thousand');
-    }
+    if (thousands > 0) resultWords.push(thousands + ' Thousand');
 
-    let hundreds = rupees;
-    if (hundreds > 0) {
-      resultWords.push(convertHundreds(hundreds).trim());
-    }
+    if (rupees > 0) resultWords.push(rupees);
     
     let finalRupeesPart = resultWords.join(' ').trim();
-    if (finalRupeesPart) {
-        finalRupeesPart += ' Rupees';
-    }
+    if (finalRupeesPart) finalRupeesPart += ' Rupees';
 
     let paiseWords = '';
     if (paise > 0) {
-      let tempPaise = paise;
-      if (tempPaise >= 20) {
-        paiseWords += tens[Math.floor(tempPaise / 10)] + ' ';
-        tempPaise %= 10;
-      } else if (tempPaise >= 10) {
-        paiseWords += teens[tempPaise - 10] + ' ';
-        tempPaise = 0;
-      }
-      if (tempPaise > 0) { 
-        paiseWords += ones[tempPaise] + ' ';
-      }
-      paiseWords = paiseWords.trim() + ' Paise';
+      paiseWords = paise + ' Paise';
     }
 
-    let finalAmountInWords = '';
     if (finalRupeesPart && paiseWords) {
-      finalAmountInWords = finalRupeesPart + ' And ' + paiseWords;
+      return finalRupeesPart + ' And ' + paiseWords;
     } else if (finalRupeesPart) {
-      finalAmountInWords = finalRupeesPart + ' Only';
-    } else if (paiseWords) {
-      finalAmountInWords = paiseWords; 
+      return finalRupeesPart + ' Only';
     } else { 
-      finalAmountInWords = 'Zero Rupees Only'; 
+      return 'Zero Rupees Only';
     }
-
-    return finalAmountInWords.trim();
   };
 
-  // Helper to format numbers with commas
-  function formatAmount(num) {
+  const formatAmount = (num) => {
     if (typeof num !== 'number' || isNaN(num)) return '';
     return num.toLocaleString('en-IN');
-  }
+  };
 
-  // Helper to format numbers as Indian currency
-  function formatINRCurrency(num) {
-    if (typeof num !== 'number' || isNaN(num)) return '';
-    return '₹ ' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-
-  // Update extractDataFromPDF to use detectAssetCategory for assetCategory
   const extractDataFromPDF = async (file) => {
     setIsProcessing(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = '';
-      if (fullText.includes('HDB FINANCIAL SERVICES')) {
-        // Only extract from the first page for HDB
-        const page = await pdf.getPage(1);
-        const textContent = await page.getTextContent();
-        fullText = textContent.items.map(item => item.str).join(' ') + ' ';
-      } else {
-        // Extract from all pages for other types
+
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
           fullText += textContent.items.map(item => item.str).join(' ') + ' ';
-        }
       }
 
-      // Debug: Print the full extracted text to the console
-      console.log('PDF Extracted Text:', fullText);
-
-      const isIDFCBankDoc = fullText.includes('IDFC FIRST Bank');
       const isHDBDoc = fullText.includes('HDB FINANCIAL SERVICES');
+      const isIDFCBankDoc = fullText.includes('IDFC FIRST Bank');
 
-      let customerNameMatch;
-      let manufacturerMatch;
-      let modelMatch;
-      let assetCostMatch;
-      let assetCost = 0;
-      let finalCustomerName = '';
+      let customerName = '';
       let manufacturer = '';
       let model = '';
       let assetCategory = '';
       let customerAddress = '';
       let serialNumber = '';
+      let assetCost = 0;
       let hdbFinance = false;
 
       if (isHDBDoc) {
         hdbFinance = true;
-        // Customer Name
-        const customerRegex = /to our Customer\s+(.+?)\s+\. Pursuant/i;
-        const customerMatch = fullText.match(customerRegex);
-        finalCustomerName = customerMatch ? customerMatch[1].trim() : '';
-        // Manufacturer
-        const brandRegex = /Product Brand\s*:\s*([^\s]+)/i;
-        const brandMatch = fullText.match(brandRegex);
+        const customerMatch = fullText.match(/to our Customer\s+(.+?)\s+\. Pursuant/i);
+        customerName = customerMatch ? customerMatch[1].trim() : '';
+        
+        const brandMatch = fullText.match(/Product Brand\s*:\s*([^\s]+)/i);
         manufacturer = brandMatch ? brandMatch[1].trim() : '';
-        // Model
-        // Read the entire model number until 'Scheme Code & EMI'
+        
         const modelStart = fullText.indexOf('Product Model :');
         const modelEnd = fullText.indexOf('Scheme Code & EMI');
         if (modelStart !== -1 && modelEnd !== -1 && modelEnd > modelStart) {
           model = fullText.substring(modelStart + 'Product Model :'.length, modelEnd).trim();
-        } else {
-          // fallback to previous regex if not found
-          const modelRegex = /Product Model\s*:\s*([^\s]+)/i;
-          const modelMatchHDB = fullText.match(modelRegex);
-          model = modelMatchHDB ? modelMatchHDB[1].trim() : '';
         }
-        // Asset Cost (A. Product Cost)
-        // Bulletproof: Find the label, skip all whitespace/non-digits, then read the number character by character
+        
         const label = 'A. Product Cost';
         const idx = fullText.indexOf(label);
-        console.log('Index of A. Product Cost:', idx);
         if (idx !== -1) {
           let i = idx + label.length;
-          // Skip all whitespace and non-digit characters
-          while (i < fullText.length && !/[0-9]/.test(fullText[i])) {
-            i++;
-          }
-          // Now read the number
+          while (i < fullText.length && !/[0-9]/.test(fullText[i])) i++;
           let numStr = '';
           while (i < fullText.length && /[0-9,\.]/.test(fullText[i])) {
             numStr += fullText[i];
             i++;
           }
-          console.log('First non-space token after A. Product Cost:', numStr);
-          if (numStr) {
-            assetCost = parseFloat(numStr.replace(/,/g, ''));
-          }
+          if (numStr) assetCost = parseFloat(numStr.replace(/,/g, ''));
         }
-        // Address
-        const addressRegex = /Customer Address\s*:\s*([\s\S]*?\d{6})/i;
-        const addressMatchHDB = fullText.match(addressRegex);
-        customerAddress = addressMatchHDB ? addressMatchHDB[1].trim() : '';
-        // Debug log for address
-        console.log('Extracted customerAddress (HDB):', customerAddress);
-        // Serial/IMEI (optional, not always present)
-        // Serial Number: extract all text after 'Serial Number' up to 'Model Number'
+        
+        const addressMatch = fullText.match(/Customer Address\s*:\s*([\s\S]*?\d{6})/i);
+        customerAddress = addressMatch ? addressMatch[1].trim() : '';
+        
         const serialStart = fullText.indexOf('Serial Number');
         const modelNumberStart = fullText.indexOf('Model Number', serialStart + 1);
         if (serialStart !== -1 && modelNumberStart !== -1 && modelNumberStart > serialStart) {
           serialNumber = fullText.substring(serialStart + 'Serial Number'.length, modelNumberStart).trim();
-          // If the only thing found is 'cashback', ignore it
-          if (/^cashback$/i.test(serialNumber) || serialNumber.length < 5) {
-            serialNumber = '';
+        }
+        
+        assetCategory = 'Electronics';
+      } else if (isIDFCBankDoc) {
+        const customerMatch = fullText.match(/loan application of (.+?) has been approved for/i);
+        customerName = customerMatch ? `${customerMatch[1].trim()} [IDFC FIRST BANK]` : '';
+        
+        // Improved asset category extraction for IDFC bills
+        const assetCategoryMatch = fullText.match(/Asset Category:?[ \t]*([A-Za-z\s]+?)(?=\s*(?:D\s*Model Number|Model Number|Serial Number|Asset Cost|$))/i);
+        if (assetCategoryMatch) {
+          assetCategory = assetCategoryMatch[1].trim();
+          // Clean up any trailing 'D' that might be included
+          if (assetCategory.endsWith('D')) {
+            assetCategory = assetCategory.slice(0, -1).trim();
           }
         } else {
-          // fallback to previous IMEI extraction if not found
-          const imeiRegex = /IMEI\s*:\s*([^\s]+)/i;
-          const imeiMatch = fullText.match(imeiRegex);
-          serialNumber = imeiMatch ? imeiMatch[1].trim() : '';
-        }
-        // Asset Category: Use Google Custom Search API
-        assetCategory = await detectAssetCategory(model);
-        // Debug log for manufacturer and assetCategory
-        console.log('Extracted manufacturer (HDB):', manufacturer);
-        console.log('Extracted assetCategory (HDB):', assetCategory);
-      } else if (isIDFCBankDoc) {
-        // For IDFC, extract name between "loan application of" and "has been approved for"
-        customerNameMatch = fullText.match(/loan application of (.+?) has been approved for/i);
-        finalCustomerName = customerNameMatch ? `${customerNameMatch[1].trim()} [IDFC FIRST BANK]` : '';
-        
-        // Extract text between "Asset Category" and "D Model Number" for asset category only
-        const assetCatStartIndex = fullText.indexOf('Asset Category');
-        const modelNumEndIndex = fullText.indexOf('D Model Number');
-        
-        console.log('Asset Category start index:', assetCatStartIndex);
-        console.log('D Model Number end index:', modelNumEndIndex);
-        
-        // Debug: Show text around Asset Category to find the correct next heading
-        let foundModelHeading = '';
-        let foundModelIndex = -1;
-        
-        if (assetCatStartIndex !== -1) {
-          const textAfterAssetCategory = fullText.substring(assetCatStartIndex + 'Asset Category'.length, assetCatStartIndex + 200);
-          console.log('Text after Asset Category:', textAfterAssetCategory);
+          // Fallback: try to find asset category between "Asset Category" and "Model Number"
+          const assetCatStartIndex = fullText.indexOf('Asset Category');
+          const modelNumStartIndex = fullText.indexOf('Model Number', assetCatStartIndex);
           
-          // Try different variations of the model number heading
-          const possibleModelHeadings = [
-            'D Model Number',
-            'Model Number',
-            'Model No',
-            'Model:',
-            'Model Number:',
-            'D Model No',
-            'Model'
-          ];
-          
-          for (const heading of possibleModelHeadings) {
-            const index = fullText.indexOf(heading, assetCatStartIndex);
-            if (index !== -1) {
-              foundModelHeading = heading;
-              foundModelIndex = index;
-              break;
+          if (assetCatStartIndex !== -1 && modelNumStartIndex !== -1 && modelNumStartIndex > assetCatStartIndex) {
+            const textStartIndex = assetCatStartIndex + 'Asset Category'.length;
+            const textEndIndex = modelNumStartIndex;
+            const rawExtractedText = fullText.substring(textStartIndex, textEndIndex);
+            assetCategory = rawExtractedText.trim();
+            // Clean up any trailing 'D' that might be included
+            if (assetCategory.endsWith('D')) {
+              assetCategory = assetCategory.slice(0, -1).trim();
             }
           }
-          
-          console.log('Found model heading:', foundModelHeading);
-          console.log('Found model index:', foundModelIndex);
         }
         
-        // Use the found model heading if available, otherwise fall back to "D Model Number"
-        const actualModelEndIndex = foundModelIndex !== -1 ? foundModelIndex : modelNumEndIndex;
-        
-        if (assetCatStartIndex !== -1 && actualModelEndIndex !== -1 && actualModelEndIndex > assetCatStartIndex) {
-          // Extract text between "Asset Category" and the found model heading
-          const textStartIndex = assetCatStartIndex + 'Asset Category'.length;
-          const textEndIndex = actualModelEndIndex;
-          const rawExtractedText = fullText.substring(textStartIndex, textEndIndex);
-          
-          console.log('Raw extracted text between Asset Category and D Model Number:', rawExtractedText);
-          
-          // Extract asset category from the raw text (keeping original format)
-          assetCategory = rawExtractedText.trim();
-          console.log('Asset Category extracted from PDF (IDFC):', assetCategory);
-          console.log('Asset Category length:', assetCategory.length);
-          
-          // Set manufacturer to empty for IDFC bills
           manufacturer = '';
-        } else {
-          console.log('Could not find "Asset Category" or "D Model Number" in PDF text');
-          console.log('Asset Category start index:', assetCatStartIndex);
-          console.log('D Model Number end index:', modelNumEndIndex);
-          manufacturer = '';
-          assetCategory = '';
-        }
         
-        // Note: No Google search fallback for IDFC bills - using only PDF extraction
-        
-        // Improved Customer Address extraction for IDFC bills (based on paragraph and box)
-        customerAddress = '';
         const para = "The required formalities with the customer have been completed and hence we request you to collect the down payment and only deliver the product at the following address post device validation is completed and final DA is received.";
         const paraIdx = fullText.indexOf(para);
         if (paraIdx !== -1) {
@@ -470,89 +257,189 @@ const BillGenerator = () => {
             }
           }
         }
-        // fallback to previous logic if not found
-        if (!customerAddress) {
-          const addressMatch = fullText.match(/(?:Customer )?Address:?[ \t]*([\s\S]*?\d{6})/i);
-          customerAddress = addressMatch ? addressMatch[1].trim() : '';
-          customerAddress = customerAddress.replace(/^(?:Customer )?Address:?[ \t]*(.*)$/i, '$1').trim();
-        }
-        // Debug log for address
-        console.log('Extracted customerAddress (IDFC):', customerAddress);
         
-        // Asset Category is already extracted above between "Asset Category" and "D Model Number"
-        // Clean up asset category (remove trailing 'D' if present)
-        if (assetCategory && assetCategory.endsWith('D')) {
-          assetCategory = assetCategory.slice(0, -1).trim();
+        // Improved model extraction for IDFC bills
+        const modelMatch = fullText.match(/Model Number:?[ \t]*([^\n\r]+?)(?=\s*(?:Scheme Name|Serial Number|Asset Category|Asset Cost|\n|\r|$))/i);
+        if (modelMatch) {
+          model = modelMatch[1].trim();
+          // Clean up any trailing 'E' that might be included
+          if (model.endsWith('E')) {
+            model = model.slice(0, -1).trim();
+          }
+        } else {
+          // Fallback: try to find model between "Model Number" and the next field
+          const modelStartIndex = fullText.indexOf('Model Number');
+          const schemeStartIndex = fullText.indexOf('Scheme Name', modelStartIndex);
+          const serialStartIndex = fullText.indexOf('Serial Number', modelStartIndex);
+          
+          let modelEndIndex = -1;
+          if (schemeStartIndex !== -1 && serialStartIndex !== -1) {
+            modelEndIndex = Math.min(schemeStartIndex, serialStartIndex);
+          } else if (schemeStartIndex !== -1) {
+            modelEndIndex = schemeStartIndex;
+          } else if (serialStartIndex !== -1) {
+            modelEndIndex = serialStartIndex;
+          }
+          
+          if (modelStartIndex !== -1 && modelEndIndex !== -1 && modelEndIndex > modelStartIndex) {
+            const textStartIndex = modelStartIndex + 'Model Number'.length;
+            const rawExtractedText = fullText.substring(textStartIndex, modelEndIndex);
+            model = rawExtractedText.trim();
+            // Clean up any trailing 'E' that might be included
+            if (model.endsWith('E')) {
+              model = model.slice(0, -1).trim();
+            }
+          }
         }
-        modelMatch = fullText.match(/Model Number:?[ \t]*([^\n\r]+?)(?!E\s*(?:Scheme Name|Serial Number|Asset Category|\n|\r))(?=\s*(?:Scheme Name|Serial Number|Asset Category|\n|\r))/i);
-        model = modelMatch ? modelMatch[1].trim() : '';
-        if (model.endsWith('E')) {
-          model = model.slice(0, -1).trim();
-        }
+        
         const serialNumberMatch = fullText.match(/Serial Number:?[ \t]*([^ \t\n]+)/i);
         serialNumber = serialNumberMatch ? serialNumberMatch[1].trim() : '';
-        assetCostMatch = fullText.match(/Cost Of Product[\s:]*([\d,\.]+)/i);
+        
+        const assetCostMatch = fullText.match(/Cost Of Product[\s:]*([\d,\.]+)/i);
         if (assetCostMatch) {
           assetCost = parseFloat(assetCostMatch[1].replace(/[^0-9.]/g, ''));
         }
-        // Debug log for manufacturer and assetCategory
-        console.log('Extracted manufacturer (IDFC):', manufacturer);
-        console.log('Extracted assetCategory (IDFC):', assetCategory);
       } else {
-        // For Chola, extract name, manufacturer, model, asset cost, and serial number
-        customerNameMatch = fullText.match(/Customer Name:?[ \t]*([A-Za-z]+(?:\s+[A-Za-z]+){0,2})/i);
-        finalCustomerName = customerNameMatch ? customerNameMatch[1].trim() : '';
-        // Remove trailing 'Customer' if present
-        finalCustomerName = finalCustomerName.replace(/\s+Customer$/, '').trim();
-        manufacturerMatch = fullText.match(/Manufacturer:?[ \t]*([^ \t\n]+)/i);
+        const customerMatch = fullText.match(/Customer Name:?[ \t]*([A-Za-z]+(?:\s+[A-Za-z]+){0,2})/i);
+        customerName = customerMatch ? customerMatch[1].trim() : '';
+        customerName = customerName.replace(/\s+Customer$/, '').trim();
+        
+        const manufacturerMatch = fullText.match(/Manufacturer:?[ \t]*([^ \t\n]+)/i);
         manufacturer = manufacturerMatch ? manufacturerMatch[1].trim() : '';
+        
         const addressMatch = fullText.match(/(?:Customer )?Address:?[ \t]*([\s\S]*?\d{6})/i);
         customerAddress = addressMatch ? addressMatch[1].trim() : '';
         customerAddress = customerAddress.replace(/^(?:Customer )?Address:?[ \t]*(.*)$/i, '$1').trim();
-        // Debug log for address
-        console.log('Extracted customerAddress (Chola):', customerAddress);
+        
         const rawAssetCategoryMatch = fullText.match(/Asset Category:?[ \t]*([A-Za-z\s]+?)(?=\s*(?:Sub-Category|Variant|\bModel\b|\bSerial Number\b|\bAsset Cost\b|$))/i);
         assetCategory = rawAssetCategoryMatch ? rawAssetCategoryMatch[1].trim() : '';
-        if (assetCategory.endsWith('D')) {
-          assetCategory = assetCategory.slice(0, -1).trim();
-        }
-        modelMatch = fullText.match(/Model:?\s*([^\n\r]+?)(?=\s*Asset Category|\n|\r)/i);
+        if (assetCategory.endsWith('D')) assetCategory = assetCategory.slice(0, -1).trim();
+        
+        const modelMatch = fullText.match(/Model:?\s*([^\n\r]+?)(?=\s*Asset Category|\n|\r)/i);
         model = modelMatch ? modelMatch[1].trim() : '';
+        
         const serialNumberMatch = fullText.match(/Serial Number:?[ \t]*([^ \t\n]+)/i);
         serialNumber = serialNumberMatch ? serialNumberMatch[1].trim() : '';
-        assetCostMatch = fullText.match(/A\. Asset Cost[^\d]*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)/i);
+        
+        const assetCostMatch = fullText.match(/A\. Asset Cost[^\d]*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)/i);
         if (assetCostMatch) {
           assetCost = parseFloat(assetCostMatch[1].replace(/[^0-9.]/g, ''));
         }
-        // Asset Category: Use Google Custom Search API
-        assetCategory = await detectAssetCategory(model);
-        // Debug log for manufacturer and assetCategory
-        console.log('Extracted manufacturer (Chola):', manufacturer);
-        console.log('Extracted assetCategory (Chola):', assetCategory);
       }
 
-      // Before setting extractedData, debug assetCost and serialNumber
-      console.log('Final assetCost before setExtractedData:', assetCost);
-      console.log('Serial number to be set in extractedData:', serialNumber);
       const extractedData = {
-        customerName: finalCustomerName,
-        customerAddress: customerAddress,
-        manufacturer: manufacturer,
-        assetCategory: assetCategory,
-        model: model,
+        customerName,
+        customerAddress,
+        manufacturer,
+        assetCategory,
+        model,
         imeiSerialNumber: serialNumber,
         date: new Date().toISOString().split('T')[0],
-        assetCost: assetCost,
-        hdbFinance: hdbFinance
+        assetCost,
+        hdbFinance
       };
 
+      // Debug logging for IDFC bills
+      if (isIDFCBankDoc) {
+        console.log('IDFC Bill Extraction Debug:', {
+          customerName,
+          assetCategory,
+          model,
+          manufacturer,
+          serialNumber,
+          assetCost
+        });
+      }
+
       setExtractedData(extractedData);
+      
+      // Save to database
+      if (invoiceNumber) {
+        await saveBillToDatabase(extractedData, invoiceNumber);
+      }
     } catch (error) {
       console.error('Error extracting PDF data:', error);
       alert('Error extracting data from PDF. Please make sure the PDF is properly formatted.');
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const saveBillToDatabase = async (data, invoiceNum) => {
+    try {
+      const taxDetails = calculateTaxDetails(data.assetCost, data.assetCategory);
+      const amountInWords = numberToWords(data.assetCost);
+      const taxAmountInWords = numberToWords(parseFloat(taxDetails.totalTaxAmount));
+
+      // Ensure required fields are not empty
+      const billData = {
+        invoiceNumber: invoiceNum,
+        customerName: data.customerName || 'Unknown Customer',
+        customerAddress: data.customerAddress || 'No Address',
+        manufacturer: data.manufacturer || 'Unknown Manufacturer',
+        assetCategory: data.assetCategory || 'Electronics',
+        model: data.model || 'Unknown Model',
+        imeiSerialNumber: data.imeiSerialNumber || '',
+        assetCost: data.assetCost || 0,
+        taxDetails,
+        amountInWords,
+        taxAmountInWords,
+        hdbFinance: data.hdbFinance || false,
+        status: 'generated',
+        date: new Date().toISOString().split('T')[0],
+        product: `${data.manufacturer || 'Unknown'} ${data.assetCategory || 'Electronics'} - ${data.model || 'Unknown'}`,
+        amount: data.assetCost || 0
+      };
+
+      const response = await fetch(`${API_BASE_URL}/bills`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(billData)
+      });
+
+      if (response.ok) {
+        console.log('Bill saved to database successfully');
+        return true;
+      } else {
+        console.error('Failed to save bill to database');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error saving bill:', error);
+      return false;
+    }
+  };
+
+  const handlePreviewBill = () => {
+    if (!extractedData || !invoiceNumber.trim()) return;
+    
+    // Show preview immediately
+    setShowBillPreview(true);
+    
+    // Save to database in the background (non-blocking)
+    saveBillToDatabase(extractedData, invoiceNumber).then(success => {
+      if (success) {
+        console.log('Bill saved to database in background');
+      } else {
+        console.log('Failed to save bill to database, but preview is still shown');
+      }
+    });
+  };
+
+  const handlePrintDownload = () => {
+    if (!extractedData || !invoiceNumber.trim()) return;
+    
+    // Print immediately
+    handlePrint();
+    
+    // Save to database in the background (non-blocking)
+    saveBillToDatabase(extractedData, invoiceNumber).then(success => {
+      if (success) {
+        console.log('Bill saved to database in background');
+      } else {
+        console.log('Failed to save bill to database, but print/download still works');
+      }
+    });
   };
 
   const handleFileUpload = (event) => {
@@ -589,8 +476,6 @@ const BillGenerator = () => {
     const taxDetails = calculateTaxDetails(extractedData.assetCost, extractedData.assetCategory);
     const amountInWords = numberToWords(extractedData.assetCost);
     const taxAmountInWords = numberToWords(parseFloat(taxDetails.totalTaxAmount));
-
-    console.log('totalTaxAmount before numberToWords:', taxDetails.totalTaxAmount);
 
     // Always use appliedSerial if HDB is checked, else use extracted value
     const serialToDisplay = (isHDBChecked ? appliedSerial : extractedData.imeiSerialNumber) || '';
@@ -789,40 +674,27 @@ const BillGenerator = () => {
   };
 
   return (
-    <div>
       <div className="bill-container">
         <h1 className="bill-header">Professional Bill Generator</h1>
 
-        {/* Upload Section */}
         <div className="upload-section">
           <input
             type="file"
             ref={fileInputRef}
             onChange={handleFileUpload}
             accept=".pdf"
-            className="hidden"
           />
-          <Upload style={{ width: 56, height: 56, color: '#60a5fa', marginBottom: 16 }} />
-          <p style={{ color: '#2563eb', marginBottom: 16, fontSize: '1.1rem', fontWeight: 500 }}>
+        <p style={{ color: '#2563eb', marginTop: 16, fontSize: '1.1rem', fontWeight: 500 }}>
             Upload PDF to extract bill information
           </p>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="upload-btn"
-          >
-            <FileText style={{ width: 20, height: 20 }} />
-            Choose PDF File
-          </button>
         </div>
 
-        {/* Processing Indicator */}
         {isProcessing && (
           <div className="processing">
             <span>Processing PDF...</span>
           </div>
         )}
 
-        {/* Extracted Data Display */}
         {extractedData && (
           <div>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 16, color: '#2563eb', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -839,7 +711,6 @@ const BillGenerator = () => {
               <div><strong>Asset Cost:</strong> ₹{extractedData.assetCost.toFixed(2)}</div>
             </div>
 
-            {/* Invoice Number Input */}
             <div style={{ marginTop: 32 }}>
               <label className="input-label">Invoice Number</label>
               <input
@@ -851,29 +722,66 @@ const BillGenerator = () => {
               />
             </div>
 
-            {/* Action Buttons */}
             <div className="action-btns">
               <button
-                onClick={() => setShowBillPreview(true)}
+              onClick={handlePreviewBill}
                 disabled={!invoiceNumber.trim()}
-                className="action-btn"
-              >
-                <Eye style={{ width: 20, height: 20 }} />
+              style={{
+                background: '#059669',
+                color: '#fff',
+                padding: '12px 24px',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                marginRight: '12px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (!e.target.disabled) {
+                  e.target.style.background = '#047857';
+                  e.target.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#059669';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
                 Preview Bill
               </button>
               <button
-                onClick={handlePrint}
+              onClick={handlePrintDownload}
                 disabled={!invoiceNumber.trim()}
-                className="action-btn print"
-              >
-                <Download style={{ width: 20, height: 20 }} />
+              style={{
+                background: '#2563eb',
+                color: '#fff',
+                padding: '12px 24px',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (!e.target.disabled) {
+                  e.target.style.background = '#1d4ed8';
+                  e.target.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#2563eb';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
                 Print/Download
               </button>
             </div>
           </div>
         )}
 
-        {/* Bill Preview */}
         {showBillPreview && extractedData && invoiceNumber && (
           <div className="modal-overlay">
             <div className="modal-content">
@@ -891,7 +799,7 @@ const BillGenerator = () => {
             </div>
           </div>
         )}
-      </div>
+
       <h2 style={{ textAlign: 'center', margin: '24px 0 16px 0' }}>Professional Bill Generator</h2>
       <div style={{ margin: '16px 0', textAlign: 'center' }}>
         <label>
@@ -931,12 +839,10 @@ const BillGenerator = () => {
              boxShadow: isSerialUpdated ? '0 2px 4px rgba(5, 150, 105, 0.2)' : '0 2px 4px rgba(37, 99, 235, 0.2)'
            }}
            onClick={(e) => {
-             // Add click animation
              e.target.style.transform = 'scale(0.95)';
              e.target.style.background = isSerialUpdated ? '#047857' : '#1d4ed8';
              e.target.style.boxShadow = isSerialUpdated ? '0 1px 2px rgba(5, 150, 105, 0.3)' : '0 1px 2px rgba(37, 99, 235, 0.3)';
              
-             // Reset animation after 150ms
              setTimeout(() => {
                e.target.style.transform = 'scale(1)';
                e.target.style.background = isSerialUpdated ? '#059669' : '#2563eb';
@@ -963,4 +869,17 @@ const BillGenerator = () => {
   );
 };
 
-export default BillGenerator;
+// Main App Component with Routing
+const App = () => {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<BillGenerator />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
+};
+
+export default App; 
