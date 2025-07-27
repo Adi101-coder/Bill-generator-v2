@@ -30,7 +30,7 @@ const Analytics = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchMonthlyAnalytics = useCallback(async (year) => {
     try {
@@ -47,7 +47,7 @@ const Analytics = () => {
     } catch (error) {
       console.error('Error fetching monthly analytics:', error);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchAnalytics();
