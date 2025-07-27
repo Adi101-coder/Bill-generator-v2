@@ -13,7 +13,7 @@ const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedPeriod, setSelectedPeriod] = useState('monthly');
 
-  const API_BASE_URL = 'http://localhost:5000/api';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
   const fetchAnalytics = useCallback(async () => {
     try {

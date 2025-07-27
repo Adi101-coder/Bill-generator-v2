@@ -39,7 +39,7 @@ const Dashboard = () => {
   const [notification, setNotification] = useState(null);
   const [showDebug, setShowDebug] = useState(false);
 
-  const API_BASE_URL = 'http://localhost:5000/api';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
   const fetchBills = useCallback(async (page = currentPage, filterParams = filters) => {
     try {
