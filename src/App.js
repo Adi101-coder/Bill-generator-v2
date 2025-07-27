@@ -3,6 +3,7 @@ import { Upload, FileText, Download, Eye, Calculator } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import Tesseract from 'tesseract.js';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// Alternative: import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import Analytics from './components/Analytics';
 import './App.css';
