@@ -11,6 +11,8 @@ import './App.css';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+console.log('API_BASE_URL:', API_BASE_URL);
+console.log('Environment:', process.env.NODE_ENV);
 
 // Admin Login Component
 const AdminLogin = ({ onLogin }) => {
@@ -392,17 +394,25 @@ const BillGenerator = () => {
         amount: data.assetCost || 0
       };
 
+      console.log('Attempting to save bill to:', `${API_BASE_URL}/bills`);
+      console.log('Bill data:', billData);
+      
       const response = await fetch(`${API_BASE_URL}/bills`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(billData)
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
       if (response.ok) {
-        console.log('Bill saved to database successfully');
+        const result = await response.json();
+        console.log('Bill saved to database successfully:', result);
         return true;
       } else {
-        console.error('Failed to save bill to database');
+        const errorText = await response.text();
+        console.error('Failed to save bill to database. Status:', response.status, 'Error:', errorText);
         return false;
       }
     } catch (error) {
