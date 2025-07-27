@@ -801,6 +801,21 @@ const BillGenerator = () => {
         )}
 
       <h2 style={{ textAlign: 'center', margin: '24px 0 16px 0' }}>Professional Bill Generator</h2>
+      <div style={{ textAlign: 'center', margin: '16px 0' }}>
+        <a 
+          href="/admin" 
+          style={{ 
+            color: '#2563eb', 
+            textDecoration: 'none', 
+            padding: '8px 16px', 
+            border: '1px solid #2563eb', 
+            borderRadius: '4px',
+            fontSize: '14px'
+          }}
+        >
+          Admin Dashboard
+        </a>
+      </div>
       <div style={{ margin: '16px 0', textAlign: 'center' }}>
         <label>
           <input
