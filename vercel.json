@@ -19,7 +19,7 @@
       "dest": "/server/index.js"
     },
     {
-      "src": "/(.*)",
+      "src": "/((?!api/).*)",
       "dest": "/build/index.html"
     }
   ],
