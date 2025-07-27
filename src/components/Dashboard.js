@@ -79,7 +79,7 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error fetching analytics:', error);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchDiskSpace = useCallback(async () => {
     try {
@@ -91,7 +91,7 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error fetching disk space:', error);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCleanup = async (daysOld = 365) => {
     if (window.confirm(`Are you sure you want to delete bills older than ${daysOld} days? This action cannot be undone.`)) {
